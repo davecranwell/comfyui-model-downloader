@@ -4,7 +4,7 @@ import requests
 
 class CivitAIDownloader(BaseModelDownloader):
     base_url = 'https://civitai.com/api'
-    RETURN_TYPES = ("STRING",)  # Add filename as output
+    RETURN_TYPES = ("COMBO",)  # COMBO type requires list[str] - empty list as placeholder
     RETURN_NAMES = ("filename",)  # Name the output
     FUNCTION = "download"
     
@@ -83,5 +83,9 @@ class CivitAIDownloader(BaseModelDownloader):
             params={'token': token_id}
         )
         
-        # Return the filename as output so other nodes can use it
-        return (filename,)
+        # Return the filename as a list for COMBO output so other nodes can use it
+        # Even if no download occurred (file already exists), return the filename
+        if result is None:
+            print(f"File already exists, returning filename without download: {filename}")
+        
+        return ([filename],)

@@ -2,7 +2,7 @@ from ..base_downloader import BaseModelDownloader, get_model_dirs
 from ..download_utils import DownloadManager
 
 class HFDownloader(BaseModelDownloader):     
-    RETURN_TYPES = ("STRING",)  # Add filename as output
+    RETURN_TYPES = ("COMBO",)  # COMBO type requires list[str] - empty list as placeholder
     RETURN_NAMES = ("filename",)  # Name the output
     FUNCTION = "download"
     
@@ -23,12 +23,18 @@ class HFDownloader(BaseModelDownloader):
                 "node_id": "UNIQUE_ID"
             }
         }
-        
+    
+    @classmethod
+    def VALIDATE_INPUTS(cls, repo_id, filename, local_path, **kwargs):
+        # Validate that we have the required inputs
+        if not repo_id or not filename:
+            return False
+        return True
 
     def download(self, repo_id, filename, local_path, node_id, overwrite=False, local_path_override=""):
         if not repo_id or not filename:
             print(f"Missing required values: repo_id='{repo_id}', filename='{filename}'")
-            return ("",)  # Return empty string for filename on error
+            return ([""],)  # Return empty list for COMBO output on error
         
         final_path = local_path_override if local_path_override else local_path
         
@@ -46,8 +52,12 @@ class HFDownloader(BaseModelDownloader):
             progress_callback=self
         )
         
-        # Return the filename as output so other nodes can use it
-        return (filename,)
+        # Return the filename as a list for COMBO output so other nodes can use it
+        # Even if no download occurred (file already exists), return the filename
+        if result is None:
+            print(f"File already exists, returning filename without download: {filename}")
+        
+        return ([filename],)
 
 
 class HFAuthDownloader(HFDownloader):  # Inherit from HFDownloader to share methods
