@@ -2,6 +2,10 @@ from ..base_downloader import BaseModelDownloader, get_model_dirs
 from ..download_utils import DownloadManager
 
 class HFDownloader(BaseModelDownloader):     
+    RETURN_TYPES = ("STRING",)  # Add filename as output
+    RETURN_NAMES = ("filename",)  # Name the output
+    FUNCTION = "download"
+    
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -20,12 +24,11 @@ class HFDownloader(BaseModelDownloader):
             }
         }
         
-    FUNCTION = "download"
 
     def download(self, repo_id, filename, local_path, node_id, overwrite=False, local_path_override=""):
         if not repo_id or not filename:
             print(f"Missing required values: repo_id='{repo_id}', filename='{filename}'")
-            return {}
+            return ("",)  # Return empty string for filename on error
         
         final_path = local_path_override if local_path_override else local_path
         
@@ -34,7 +37,7 @@ class HFDownloader(BaseModelDownloader):
         save_path = self.prepare_download_path(final_path, filename)
         url = f"https://huggingface.co/{repo_id}/resolve/main/{filename}"
         
-        return self.handle_download(
+        result = self.handle_download(
             DownloadManager.download_with_progress,
             save_path=save_path,
             filename=filename,
@@ -42,7 +45,9 @@ class HFDownloader(BaseModelDownloader):
             url=url,
             progress_callback=self
         )
-    
+        
+        # Return the filename as output so other nodes can use it
+        return (filename,)
 
 
 class HFAuthDownloader(HFDownloader):  # Inherit from HFDownloader to share methods
@@ -79,7 +84,7 @@ class HFAuthDownloader(HFDownloader):  # Inherit from HFDownloader to share meth
                 node_id=self.node_id,
                 overwrite=overwrite
             )
-            return {}
+            return result  # Return the result from parent download method
         except Exception as e:
             print(f"Error in HF Auth Downloader: {str(e)}")
             raise e

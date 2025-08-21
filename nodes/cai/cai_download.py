@@ -4,6 +4,9 @@ import requests
 
 class CivitAIDownloader(BaseModelDownloader):
     base_url = 'https://civitai.com/api'
+    RETURN_TYPES = ("STRING",)  # Add filename as output
+    RETURN_NAMES = ("filename",)  # Name the output
+    FUNCTION = "download"
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -19,8 +22,6 @@ class CivitAIDownloader(BaseModelDownloader):
             }
         }
         
-    FUNCTION = "download"
-    
     def get_download_filename_url(self, model_id, version_id, token_id):
         """ Find the model filename and URL from the CivitAI API
             If version_id is provided, download that specific version
@@ -73,7 +74,7 @@ class CivitAIDownloader(BaseModelDownloader):
         filename, url = self.get_download_filename_url(model_id, version_id, token_id)
         save_path = self.prepare_download_path(save_dir, filename)
         
-        return self.handle_download(
+        result = self.handle_download(
             DownloadManager.download_with_progress,
             url=url,
             save_path=save_path,
@@ -81,3 +82,6 @@ class CivitAIDownloader(BaseModelDownloader):
             progress_callback=self,
             params={'token': token_id}
         )
+        
+        # Return the filename as output so other nodes can use it
+        return (filename,)
